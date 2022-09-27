@@ -1,6 +1,8 @@
 package hu.boga.music.gui.track;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -11,6 +13,7 @@ import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 
 import hu.boga.music.App;
+import hu.boga.music.enums.ChordType;
 import hu.boga.music.enums.NoteLength;
 import hu.boga.music.gui.controls.*;
 import hu.boga.music.gui.projecteditor.TesztForm;
@@ -38,6 +41,8 @@ public class TrackEditor extends JInternalFrame {
     TempoSlider tempoSlider = new TempoSlider();
     JComboBox cbChannel = new JComboBox(new DefaultComboBoxModel(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" }));
     VolumeSlider volumeSlider = new VolumeSlider();
+
+    ChordType selectedChordType;
 
     public TrackEditor(Track track) {
         super("Trackeditor", true, false, true, true);
@@ -113,8 +118,24 @@ public class TrackEditor extends JInternalFrame {
         panel1.add(volumeSlider);
 
 
-        JLabel label = new JLabel("Chords in scale");
+        JLabel label = new JLabel("Chord selector");
         panel2.add(label);
+        ButtonGroup buttonGroupChords = new ButtonGroup();
+
+        JRadioButton jRadioButton = new JRadioButton();
+        jRadioButton.addActionListener(l -> selectedChordType = null);
+        buttonGroupChords.add(jRadioButton);
+        jRadioButton.setText("None");
+        panel2.add(jRadioButton);
+        jRadioButton.setSelected(true);
+
+        Arrays.stream(ChordType.values()).sequential().forEach(ct -> {
+            JRadioButton rb = new JRadioButton();
+            rb.addActionListener(l -> selectedChordType = ct);
+            buttonGroupChords.add(rb);
+            panel2.add(rb);
+            rb.setText(ct.name());
+        });
 
         label = new JLabel("All chords");
         panel3.add(label);
@@ -147,6 +168,10 @@ public class TrackEditor extends JInternalFrame {
 
     public NoteLength getNoteLength(){
         return this.noteLengthCombo.getSelectedNoteLength();
+    }
+
+    public ChordType getChordType(){
+        return selectedChordType;
     }
 
 }

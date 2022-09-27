@@ -6,8 +6,8 @@ import hu.boga.music.enums.NoteName;
 import hu.boga.music.midi.MidiEventListener;
 import hu.boga.music.model.Note;
 import hu.boga.music.model.Track;
+import hu.boga.music.theory.Chord;
 import hu.boga.music.theory.Pitch;
-import hu.boga.music.theory.Scale;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,7 +21,6 @@ import java.util.Map;
 
 public class TrackEditorPanel extends JLayeredPane implements MidiEventListener {
 
-
     private static final int OCTAVES = 8;
     private int barCount = 10;
     private static final int TICK_COUNT_IN_BAR = 32;
@@ -29,14 +28,17 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     private static final int KEYBOARD_OFFSET = 40;
     private static final Color KEY_BLACK_COLOR = new Color(Color.BLACK.getRed(), Color.BLACK.getGreen(), Color.BLACK.getBlue());
     private static final Color KEY_WHITE_COLOR = new Color(Color.WHITE.getRed(), Color.WHITE.getGreen(), Color.WHITE.getBlue());
+    private static final Color HIGHLIGHT_COLOR = new Color(Color.BLUE.getRed(), Color.BLUE.getGreen(), Color.BLUE.getBlue(), 80);
 
     Track track;
     TrackEditor editor;
     Point dragStart;
     private Map<Integer, List<Note>> copiedNotes;
     private int currentTick;
-
     List<NoteName> currentScale;
+
+    private int currentMouseTickPosition;
+    private Pitch currentMousePitchPosition = new Pitch();
 
     public TrackEditorPanel(Track track, TrackEditor editor) {
         this.track = track;
@@ -53,7 +55,7 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
 
     }
 
-    private void handleMouseWheelEvent(MouseWheelEvent mouseWheelEvent) {
+    private void handleMouseWheelEventOnTrackEditor(MouseWheelEvent mouseWheelEvent) {
         int newWidth = this.getWidth() + (mouseWheelEvent.getWheelRotation() * 500);
         if(newWidth >= getParent().getWidth()){
             Dimension dimension = new Dimension(newWidth, getHeight());
@@ -64,7 +66,7 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         }
     }
 
-    private void handleMouseClicked(MouseEvent e) {
+    private void handleMouseClickedOnTrackEditor(MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON3) {
             showPopupMenu(e.getLocationOnScreen());
         } else {
@@ -77,6 +79,17 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         note.setPitch(getPitchByY(point.y));
         note.setLength(this.editor.getNoteLength());
         this.track.getNotesAtTick(getTickByX(point.x)).add(note);
+
+        if(this.editor.selectedChordType != null){
+            Chord chord = Chord.getChord(currentMousePitchPosition, editor.selectedChordType);
+            Arrays.stream(chord.getPitches()).forEach(pitch -> {
+                Note n = new Note();
+                n.setPitch(pitch);
+                n.setLength(this.editor.getNoteLength());
+                this.track.getNotesAtTick(getTickByX(point.x)).add(n);
+            });
+        }
+
         displayNotes();
         this.repaint();
     }
@@ -96,6 +109,25 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
             paintTickPointer(g);
         }
 
+        paintHighlightedChord(g);
+
+    }
+
+    private void paintHighlightedChord(Graphics g) {
+        g.setColor(HIGHLIGHT_COLOR);
+        int tickWidth = getTickWidth();
+        int x = getXByTick(currentMouseTickPosition, tickWidth);
+        int y = getYByPitch(currentMousePitchPosition.getMidiCode());
+        int width = this.editor.getNoteLength().getErtek() * tickWidth;
+        g.fillRect(x, y, width, LINE_HEIGHT);
+
+        if(this.editor.selectedChordType != null){
+            Chord chord = Chord.getChord(currentMousePitchPosition, editor.selectedChordType);
+            Arrays.stream(chord.getPitches()).forEach(pitch -> {
+                int y2 = getYByPitch(pitch.getMidiCode());
+                g.fillRect(x, y2, width, LINE_HEIGHT);
+            });
+        }
     }
 
     private void paintTickPointer(Graphics g) {
@@ -136,36 +168,51 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         MouseAdapter mouseAdapter = new MouseAdapter() {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
-                handleMouseWheelEvent(e);
+                handleMouseWheelEventOnTrackEditor(e);
             }
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (dragStart != null) {
-                    selectNotes(dragStart, e.getPoint());
-                    dragStart = null;
-                }
+                handleMouseReleasedOnTrackEditor(e);
 
             }
-
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (dragStart == null) {
-                    dragStart = e.getPoint();
-                }
+                handleMouseDraggedOnTrackEditor(e);
             }
-
             @Override
             public void mouseMoved(MouseEvent e) {
-                int currentTick = getTickByX(e.getX());
-                Pitch currentPitch = getPitchByY(e.getY());
+                handleMouseMovedOnTrackEditor(e);
             }
-
             @Override
             public void mouseClicked(MouseEvent e) {
-                handleMouseClicked(e);
+                handleMouseClickedOnTrackEditor(e);
             }
         };
         return mouseAdapter;
+    }
+
+    private void handleMouseMovedOnTrackEditor(MouseEvent e) {
+        int newMouseTickPosition = getTickByX(e.getX());
+        Pitch newMousePitchPosition = getPitchByY(e.getY());
+        if(newMousePitchPosition.getMidiCode() != currentMousePitchPosition.getMidiCode() || newMouseTickPosition != currentMouseTickPosition){
+            currentMouseTickPosition = newMouseTickPosition;
+            currentMousePitchPosition = newMousePitchPosition;
+            repaint();
+            revalidate();
+        }
+    }
+
+    private void handleMouseDraggedOnTrackEditor(MouseEvent e) {
+        if (dragStart == null) {
+            dragStart = e.getPoint();
+        }
+    }
+
+    private void handleMouseReleasedOnTrackEditor(MouseEvent e) {
+        if (dragStart != null) {
+            selectNotes(dragStart, e.getPoint());
+            dragStart = null;
+        }
     }
 
     private MouseAdapter prepareMouseAdapterForNoteLabel(Note note, NoteLabel noteLabel) {
@@ -293,13 +340,20 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         NoteName noteName = noteNameList.get(i % 12);
         drawKeyboardKey(g, noteName, i);
         g.setColor(Color.BLACK);
+        Graphics2D g2d = (Graphics2D) g;
+        Stroke dashed = new BasicStroke(3);
+        g2d.setStroke(dashed);
         g.drawLine(0, i * LINE_HEIGHT, this.getWidth(), i * LINE_HEIGHT);
+        dashed = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
+                0, new float[]{1}, 0);
+        g2d.setStroke(dashed);
         if(this.currentScale.contains(noteName)){
             g.setColor(Color.GREEN);
         } else {
             g.setColor(Color.RED);
         }
-        g.drawLine(0, i * LINE_HEIGHT + (LINE_HEIGHT / 2), this.getWidth(), i * LINE_HEIGHT + (LINE_HEIGHT / 2));
+        g.drawLine(KEYBOARD_OFFSET, i * LINE_HEIGHT + (LINE_HEIGHT / 2), this.getWidth(), i * LINE_HEIGHT + (LINE_HEIGHT / 2));
+        //g2d.dispose();
     }
 
     private void drawKeyboardKey(Graphics g, NoteName noteName, int i) {
