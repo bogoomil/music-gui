@@ -117,22 +117,22 @@ public class ProjectEditor extends JInternalFrame {
 
         JButton btnDelTrack = new JButton("-track");
         panel_2.add(btnDelTrack);
-        btnDelTrack.addActionListener(e -> {
-            this.getSelectedPanel().ifPresent(tsp -> {
-                piece.removeTrack(tsp.getTrack());
-                this.rebuildGui();
-            });
-        });
+//        btnDelTrack.addActionListener(e -> {
+//            this.getSelectedPanel().ifPresent(tsp -> {
+//                piece.removeTrack(tsp.getTrack());
+//                this.rebuildGui();
+//            });
+//        });
 
         JButton btnDuplicateTrack = new JButton("X2 track");
         panel_2.add(btnDuplicateTrack);
-        btnDuplicateTrack.addActionListener(e -> {
-            this.getSelectedPanel().ifPresent(tsp -> {
-                Track clone = tsp.getTrack().clone();
-                piece.addTrack(clone);
-                this.rebuildGui();
-            });
-        });
+//        btnDuplicateTrack.addActionListener(e -> {
+//            this.getSelectedPanel().ifPresent(tsp -> {
+//                Track clone = tsp.getTrack().clone();
+//                piece.addTrack(clone);
+//                this.rebuildGui();
+//            });
+//        });
 
         JPanel panel_3 = new JPanel();
         getContentPane().add(panel_3, BorderLayout.SOUTH);
@@ -218,22 +218,22 @@ public class ProjectEditor extends JInternalFrame {
         TEMPO_SLIDER.setValue(piece.getTempo());
         tracks.removeAll();
         this.piece.getTracks().forEach(t -> {
-            TrackSettingsPanel tsp = new TrackSettingsPanel(t);
-            this.buttonGroup.add(tsp.getRadioButton());
-            tracks.add(tsp);
+//            TrackSettingsPanel tsp = new TrackSettingsPanel(t);
+//            this.buttonGroup.add(tsp.getRadioButton());
+//            tracks.add(tsp);
         });
         tracks.revalidate();
     }
 
-    private Optional<TrackSettingsPanel> getSelectedPanel() {
-        for (int i = 0; i < this.tracks.getComponents().length; i++) {
-            TrackSettingsPanel tsp = (TrackSettingsPanel) tracks.getComponent(i);
-            if (tsp.getRadioButton().isSelected()) {
-                return Optional.of(tsp);
-            }
-
-        }
-        return Optional.empty();
-    }
+//    private Optional<TrackSettingsPanel> getSelectedPanel() {
+//        for (int i = 0; i < this.tracks.getComponents().length; i++) {
+//            TrackSettingsPanel tsp = (TrackSettingsPanel) tracks.getComponent(i);
+//            if (tsp.getRadioButton().isSelected()) {
+//                return Optional.of(tsp);
+//            }
+//
+//        }
+//        return Optional.empty();
+//    }
 
 }

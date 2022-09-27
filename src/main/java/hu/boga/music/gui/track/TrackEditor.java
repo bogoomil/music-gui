@@ -1,23 +1,16 @@
 package hu.boga.music.gui.track;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Arrays;
 
 import javax.sound.midi.InvalidMidiDataException;
 import javax.sound.midi.MidiUnavailableException;
 import javax.swing.*;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
 
-import hu.boga.music.App;
 import hu.boga.music.enums.ChordType;
 import hu.boga.music.enums.NoteLength;
 import hu.boga.music.gui.controls.*;
-import hu.boga.music.gui.projecteditor.TesztForm;
-import hu.boga.music.gui.track.TrackEditorPanel;
 import hu.boga.music.midi.MidiEngine;
 import hu.boga.music.model.Piece;
 import hu.boga.music.model.Track;
@@ -37,7 +30,6 @@ public class TrackEditor extends JInternalFrame {
     ToneCombo toneCombo = new ToneCombo();
     InstrumentCombo instrCombo = new InstrumentCombo();
     NoteLengthCombo noteLengthCombo = new NoteLengthCombo();
-    NoteLengthCombo gapLengthCombo = new NoteLengthCombo();
     TempoSlider tempoSlider = new TempoSlider();
     JComboBox cbChannel = new JComboBox(new DefaultComboBoxModel(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" }));
     VolumeSlider volumeSlider = new VolumeSlider();

@@ -144,8 +144,6 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         int tickWidth = getTickWidth();
         this.track.getTrackMap().forEach((tick, list) -> {
             list.forEach(note -> {
-
-
                 NoteLabel noteLabel = new NoteLabel(note);
                 Rectangle bounds = new Rectangle(
                         getXByTick(tick, tickWidth),
@@ -218,13 +216,11 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     private MouseAdapter prepareMouseAdapterForNoteLabel(Note note, NoteLabel noteLabel) {
         MouseAdapter mouseAdapter = new MouseAdapter() {
             private int startDragX;
-
             @Override
             public void mouseClicked(MouseEvent e) {
                 note.toggleSelection();
                 displayNotes();
             }
-
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
                 NoteLabel source = (NoteLabel) e.getSource();
@@ -238,7 +234,6 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
                 displayNotes();
                 repaint();
             }
-
             @Override
             public void mouseReleased(MouseEvent e) {
                 Thread th = new Thread(new Runnable() {
@@ -255,12 +250,10 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
                 });
                 th.start();
             }
-
             @Override
             public void mousePressed(MouseEvent e) {
                 startDragX = e.getX();
             }
-
             @Override
             public void mouseDragged(MouseEvent e) {
                 NoteLabel source = (NoteLabel) e.getSource();
@@ -323,7 +316,6 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
 
     private int getTickWidth() {
         int tickWidth = (this.getWidth() - KEYBOARD_OFFSET) / getTickCount();
-//        return tickWidth > 0 ? tickWidth : 1;
         return tickWidth;
     }
 
@@ -353,7 +345,6 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
             g.setColor(Color.RED);
         }
         g.drawLine(KEYBOARD_OFFSET, i * LINE_HEIGHT + (LINE_HEIGHT / 2), this.getWidth(), i * LINE_HEIGHT + (LINE_HEIGHT / 2));
-        //g2d.dispose();
     }
 
     private void drawKeyboardKey(Graphics g, NoteName noteName, int i) {
@@ -517,7 +508,6 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     public void processTickEvent(int tick) {
         currentTick = tick;
         this.repaint();
-
     }
 
     @Override

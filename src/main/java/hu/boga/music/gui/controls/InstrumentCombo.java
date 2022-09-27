@@ -16,8 +16,6 @@ public class InstrumentCombo extends JComboBox {
 
     public InstrumentCombo() {
         super();
-        // setFont(App.DEFAULT_FONT);
-
         DefaultComboBoxModel model = new DefaultComboBoxModel();
         instruments.sort(Comparator.comparing(Instrument::getName));
         instruments.forEach(i -> {
