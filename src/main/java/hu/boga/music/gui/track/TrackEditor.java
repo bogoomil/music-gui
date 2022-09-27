@@ -153,9 +153,9 @@ public class TrackEditor extends JInternalFrame {
     }
 
     private void initTrackSettings() {
-        track.getSettings().setProgram(instrCombo.getProgram());
-        track.getSettings().setMidiChannel(cbChannel.getSelectedIndex());
-        track.getSettings().setVolume(volumeSlider.getValue());
+        track.getSettings().program = instrCombo.getProgram();
+        track.getSettings().midiChannel = cbChannel.getSelectedIndex();
+        track.getSettings().volume = volumeSlider.getValue();
     }
 
     public NoteLength getNoteLength(){

@@ -185,8 +185,19 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
             public void mouseClicked(MouseEvent e) {
                 handleMouseClickedOnTrackEditor(e);
             }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                handleMouseExitedOnTrackEditor();
+            }
         };
         return mouseAdapter;
+    }
+
+    private void handleMouseExitedOnTrackEditor() {
+        currentMousePitchPosition = new Pitch();
+        currentMouseTickPosition = 0;
+        repaint();
+        revalidate();
     }
 
     private void handleMouseMovedOnTrackEditor(MouseEvent e) {
