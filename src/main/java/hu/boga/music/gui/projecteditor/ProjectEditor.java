@@ -6,9 +6,8 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Optional;
+import java.util.UUID;
 
 import javax.sound.midi.InvalidMidiDataException;
 import javax.sound.midi.MidiUnavailableException;
@@ -33,28 +32,30 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import hu.boga.music.App;
+import hu.boga.music.gui.TrackOpenEvent;
 import hu.boga.music.gui.controls.TempoSlider;
 import hu.boga.music.midi.MidiEngine;
-import hu.boga.music.model.Piece;
 import hu.boga.music.model.Track;
 
 public class ProjectEditor extends JInternalFrame {
 
-    private Piece piece = App.CONTROLLER.getPiece();
+    public static final String DEFAULT_TRACK_NAME = "default track name";
     private Track currentTrack = App.CONTROLLER.getCurrentTrack();
-    private JPanel tracks;
+    private JPanel tracksPanel;
     public static final TempoSlider TEMPO_SLIDER = new TempoSlider();
     private ButtonGroup buttonGroup = new ButtonGroup();
-    private JTextField tfPieceName;
+    private JTextField projectNameTxtField;
     public static final JToggleButton BTN_REC = new JToggleButton("REC");
     private JFileChooser fileChooser = new JFileChooser();
 
-    public ProjectEditor() {
+
+    Project project;
+
+    public ProjectEditor(Project project) {
 
         super("Project editor", true, false, false, false);
+        this.project = project;
         App.EVENT_BUS.register(this);
-
-        TEMPO_SLIDER.addChangeListener(l -> this.piece.setTempo(TEMPO_SLIDER.getValue()));
 
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
@@ -63,9 +64,9 @@ public class ProjectEditor extends JInternalFrame {
         JPanel tracksWrapper = new JPanel();
         scrollPane.setViewportView(tracksWrapper);
 
-        tracks = new JPanel();
-        tracksWrapper.add(tracks);
-        tracks.setLayout(new BoxLayout(tracks, BoxLayout.Y_AXIS));
+        tracksPanel = new JPanel();
+        tracksWrapper.add(tracksPanel);
+        tracksPanel.setLayout(new BoxLayout(tracksPanel, BoxLayout.Y_AXIS));
 
         JPanel panel = new JPanel();
         getContentPane().add(panel, BorderLayout.NORTH);
@@ -81,7 +82,7 @@ public class ProjectEditor extends JInternalFrame {
         JButton btnPlay = new JButton("Play");
         btnPlay.addActionListener(e -> {
             try {
-                MidiEngine.playTracks(App.CONTROLLER.getPiece().getTracks(), TEMPO_SLIDER.getValue(), 0);
+                MidiEngine.playTracks(project.getTracks(), TEMPO_SLIDER.getValue(), 0);
             } catch (InvalidMidiDataException | MidiUnavailableException | IOException e1) {
                 e1.printStackTrace();
             }
@@ -95,10 +96,10 @@ public class ProjectEditor extends JInternalFrame {
         flowLayout_1.setAlignment(FlowLayout.LEFT);
         panel.add(panel_1);
 
-        tfPieceName = new JTextField();
-        tfPieceName.setBorder(new TitledBorder(null, "Title", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-        panel_1.add(tfPieceName);
-        tfPieceName.setColumns(10);
+        projectNameTxtField = new JTextField();
+        projectNameTxtField.setBorder(new TitledBorder(null, "Title", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel_1.add(projectNameTxtField);
+        projectNameTxtField.setColumns(10);
 
         panel_1.add(TEMPO_SLIDER);
 
@@ -110,29 +111,14 @@ public class ProjectEditor extends JInternalFrame {
         JButton btnAddTrack = new JButton("+track");
         panel_2.add(btnAddTrack);
         btnAddTrack.addActionListener(e -> {
-            Track newTrack = new Track();
-            App.CONTROLLER.getPiece().addTrack(newTrack);
-            this.rebuildGui();
+            addTrack(project);
         });
 
         JButton btnDelTrack = new JButton("-track");
         panel_2.add(btnDelTrack);
-//        btnDelTrack.addActionListener(e -> {
-//            this.getSelectedPanel().ifPresent(tsp -> {
-//                piece.removeTrack(tsp.getTrack());
-//                this.rebuildGui();
-//            });
-//        });
 
         JButton btnDuplicateTrack = new JButton("X2 track");
         panel_2.add(btnDuplicateTrack);
-//        btnDuplicateTrack.addActionListener(e -> {
-//            this.getSelectedPanel().ifPresent(tsp -> {
-//                Track clone = tsp.getTrack().clone();
-//                piece.addTrack(clone);
-//                this.rebuildGui();
-//            });
-//        });
 
         JPanel panel_3 = new JPanel();
         getContentPane().add(panel_3, BorderLayout.SOUTH);
@@ -186,54 +172,44 @@ public class ProjectEditor extends JInternalFrame {
         this.setVisible(true);
     }
 
+    private void addTrack(Project project) {
+        Track newTrack = new Track();
+        newTrack.setName(UUID.randomUUID().toString().substring(0, 10));
+        project.getTracks().add(newTrack);
+        this.updateTrackButtons();
+        App.EVENT_BUS.post(new TrackOpenEvent(newTrack));
+    }
+
     private void open(File file) throws JsonParseException, JsonMappingException, IOException {
         ObjectMapper om = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        Piece p = om.readValue(file, Piece.class);
-        this.setPiece(p);
+ //       Piece p = om.readValue(file, Piece.class);
+//        this.setPiece(p);
 
     }
 
     private void save(File file) throws IOException {
-        piece.setName(this.tfPieceName.getText());
-
-        ObjectMapper om = new ObjectMapper();
-        String json = om.writeValueAsString(piece);
-        FileWriter writer = new FileWriter(file);
-        writer.write(json);
-        writer.flush();
-        writer.close();
-
-    }
-
-    public void setPiece(Piece p) {
-        this.piece = p;
-        App.CONTROLLER.setPiece(piece);
-        tfPieceName.setText(piece.getName());
-        rebuildGui();
-    }
-
-    private void rebuildGui() {
-        tfPieceName.setText(this.piece.getName());
-        TEMPO_SLIDER.setValue(piece.getTempo());
-        tracks.removeAll();
-        this.piece.getTracks().forEach(t -> {
-//            TrackSettingsPanel tsp = new TrackSettingsPanel(t);
-//            this.buttonGroup.add(tsp.getRadioButton());
-//            tracks.add(tsp);
-        });
-        tracks.revalidate();
-    }
-
-//    private Optional<TrackSettingsPanel> getSelectedPanel() {
-//        for (int i = 0; i < this.tracks.getComponents().length; i++) {
-//            TrackSettingsPanel tsp = (TrackSettingsPanel) tracks.getComponent(i);
-//            if (tsp.getRadioButton().isSelected()) {
-//                return Optional.of(tsp);
-//            }
+   //     piece.setName(this.tfPieceName.getText());
 //
-//        }
-//        return Optional.empty();
-//    }
+//        ObjectMapper om = new ObjectMapper();
+//        String json = om.writeValueAsString(piece);
+//        FileWriter writer = new FileWriter(file);
+//        writer.write(json);
+//        writer.flush();
+//        writer.close();
+
+    }
+
+    private void updateTrackButtons() {
+        tracksPanel.removeAll();
+        this.project.getTracks().forEach(t -> {
+            JButton jButton = new JButton(t.getName());
+            jButton.addActionListener(l -> {
+                App.EVENT_BUS.post(new TrackOpenEvent(t));
+            });
+            tracksPanel.add(jButton);
+        });
+        tracksPanel.revalidate();
+    }
 
 }

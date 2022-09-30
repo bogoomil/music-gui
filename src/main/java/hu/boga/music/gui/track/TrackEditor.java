@@ -1,12 +1,15 @@
 package hu.boga.music.gui.track;
 
 import java.awt.*;
+import java.beans.PropertyVetoException;
 import java.io.IOException;
 import java.util.Arrays;
 
 import javax.sound.midi.InvalidMidiDataException;
 import javax.sound.midi.MidiUnavailableException;
 import javax.swing.*;
+import javax.swing.event.InternalFrameEvent;
+import javax.swing.event.InternalFrameListener;
 
 import hu.boga.music.enums.ChordType;
 import hu.boga.music.enums.NoteLength;
@@ -14,6 +17,7 @@ import hu.boga.music.gui.controls.*;
 import hu.boga.music.midi.MidiEngine;
 import hu.boga.music.model.Piece;
 import hu.boga.music.model.Track;
+import hu.boga.music.model.TrackSettings;
 import hu.boga.music.theory.Scale;
 
 public class TrackEditor extends JInternalFrame {
@@ -24,26 +28,79 @@ public class TrackEditor extends JInternalFrame {
     private Point dragStart;
     private Track track;
 
-    Box verticalBox = Box.createVerticalBox();
-
     NoteNameCombo noteNameCombo = new NoteNameCombo();
     ToneCombo toneCombo = new ToneCombo();
     InstrumentCombo instrCombo = new InstrumentCombo();
     NoteLengthCombo noteLengthCombo = new NoteLengthCombo();
     TempoSlider tempoSlider = new TempoSlider();
-    JComboBox cbChannel = new JComboBox(new DefaultComboBoxModel(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" }));
+    JComboBox cbChannel = new JComboBox(new DefaultComboBoxModel(new String[]{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"}));
     VolumeSlider volumeSlider = new VolumeSlider();
 
-    ChordType selectedChordType;
-
-    public TrackEditor(Track track) {
-        super("Trackeditor", true, false, true, true);
-        this.track = track;
+    public TrackEditor() {
+        super("Trackeditor", true, false, true, false);
         createTrackEditorPanel();
         createTrackSettingsPanel();
-        this.setPreferredSize(new Dimension(1500, 450));
-        this.pack();
+        this.addInternalFrameListener(new InternalFrameListener() {
+            @Override
+            public void internalFrameOpened(InternalFrameEvent internalFrameEvent) {
+
+            }
+
+            @Override
+            public void internalFrameClosing(InternalFrameEvent internalFrameEvent) {
+
+            }
+
+            @Override
+            public void internalFrameClosed(InternalFrameEvent internalFrameEvent) {
+                try {
+                    TrackEditor.this.setClosed(true);
+                } catch (PropertyVetoException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            public void internalFrameIconified(InternalFrameEvent internalFrameEvent) {
+                TrackEditor.this.getDesktopIcon().setLocation(TrackEditor.this.getLocation().x, TrackEditor.this.getLocation().y);
+
+            }
+
+            @Override
+            public void internalFrameDeiconified(InternalFrameEvent internalFrameEvent) {
+
+            }
+
+            @Override
+            public void internalFrameActivated(InternalFrameEvent internalFrameEvent) {
+
+            }
+
+            @Override
+            public void internalFrameDeactivated(InternalFrameEvent internalFrameEvent) {
+
+            }
+        });
+        this.setPreferredSize(new Dimension(1500, 542));
         this.setVisible(true);
+        this.pack();
+    }
+
+    public void setTrack(Track track) {
+        this.setTitle(track.getName());
+        this.track = track;
+        this.trackEditorPanel.setTrack(track);
+
+        this.initSettingsControls(track);
+    }
+
+    private void initSettingsControls(Track track) {
+        TrackSettings trackSettings = track.getSettings();
+        this.cbChannel.setSelectedIndex(trackSettings.midiChannel);
+        this.instrCombo.setProgram(trackSettings.program);
+        this.volumeSlider.setValue(trackSettings.volume);
+
 
     }
 
@@ -51,7 +108,7 @@ public class TrackEditor extends JInternalFrame {
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         getContentPane().add(scrollPane, BorderLayout.CENTER);
-        trackEditorPanel = new TrackEditorPanel(track, this);
+        trackEditorPanel = new TrackEditorPanel();
         scrollPane.setViewportView(trackEditorPanel);
         trackEditorPanel.currentScale = Scale.getScale(noteNameCombo.getSelectedNoteName(), toneCombo.getSelectedTone());
 
@@ -59,78 +116,88 @@ public class TrackEditor extends JInternalFrame {
     }
 
     private void createTrackSettingsPanel() {
-        JPanel panelNorth = new JPanel();
-        panelNorth.add(verticalBox);
-
-        JPanel panel1 = new JPanel();
-        verticalBox.add(panel1);
-
-        JPanel panel2 = new JPanel();
-        verticalBox.add(panel2);
-
-        JPanel panel3 = new JPanel();
-        verticalBox.add(panel3);
-
+        Box verticalBox = Box.createVerticalBox();
         this.add(verticalBox, BorderLayout.NORTH);
 
+        verticalBox.add(createGeneralControlsPanel());
+
+        verticalBox.add(createChordSelectorPanel());
+
+        verticalBox.add(createTrackSpecificControls());
+
+    }
+
+    private JPanel createGeneralControlsPanel() {
+        JPanel generalControlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btn = new JButton("Play");
-        panel1.add(btn);
+        generalControlsPanel.add(btn);
         btn.addActionListener(l -> {
             tryPlayTrack();
 
         });
 
         btn = new JButton("Stop");
-        panel1.add(btn);
+        generalControlsPanel.add(btn);
         btn.addActionListener(l -> {
             MidiEngine.getSequencer().stop();
         });
 
 
-        panel1.add(new JLabel("Instrument"));
-        panel1.add(instrCombo);
-        panel1.add(new JLabel("Root"));
-        panel1.add(noteNameCombo);
+        generalControlsPanel.add(new JLabel("Root"));
+        generalControlsPanel.add(noteNameCombo);
         noteNameCombo.addActionListener(l -> {
             changeTrackEditorScale();
         });
-        panel1.add(new JLabel("Tone"));
-        panel1.add(toneCombo);
+        generalControlsPanel.add(new JLabel("Tone"));
+        generalControlsPanel.add(toneCombo);
         toneCombo.addActionListener(l -> {
             changeTrackEditorScale();
         });
-        panel1.add(new JLabel("Note length"));
-        panel1.add(noteLengthCombo);
+        generalControlsPanel.add(new JLabel("Note length"));
+        generalControlsPanel.add(noteLengthCombo);
         noteLengthCombo.setSelectedNoteLength(NoteLength.NEGYED);
+        noteLengthCombo.addActionListener(l -> trackEditorPanel.setCurrentNoteLength(noteLengthCombo.getSelectedNoteLength()));
 
-        panel1.add(tempoSlider);
-        panel1.add(new JLabel("Channel"));
-        panel1.add(cbChannel);
-        panel1.add(new JLabel("Volume"));
-        panel1.add(volumeSlider);
+        generalControlsPanel.add(tempoSlider);
 
+        return generalControlsPanel;
+    }
 
-        JLabel label = new JLabel("Chord selector");
-        panel2.add(label);
+    private JPanel createChordSelectorPanel() {
+        JPanel chordSelectorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel label = new JLabel("Chords");
+        chordSelectorPanel.add(label);
         ButtonGroup buttonGroupChords = new ButtonGroup();
 
         JRadioButton jRadioButton = new JRadioButton();
-        jRadioButton.addActionListener(l -> selectedChordType = null);
+        jRadioButton.addActionListener(l -> trackEditorPanel.setCurrentChordType(null));
         buttonGroupChords.add(jRadioButton);
         jRadioButton.setText("None");
-        panel2.add(jRadioButton);
+        chordSelectorPanel.add(jRadioButton);
         jRadioButton.setSelected(true);
 
         Arrays.stream(ChordType.values()).sequential().forEach(ct -> {
             JRadioButton rb = new JRadioButton();
-            rb.addActionListener(l -> selectedChordType = ct);
+            rb.addActionListener(l -> trackEditorPanel.setCurrentChordType(ct));
             buttonGroupChords.add(rb);
-            panel2.add(rb);
+            chordSelectorPanel.add(rb);
             rb.setText(ct.name());
         });
+        return chordSelectorPanel;
+    }
 
-        label = new JLabel("All chords");
-        panel3.add(label);
+    private JPanel createTrackSpecificControls() {
+        JPanel trackSpecificControlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        trackSpecificControlsPanel.add(new JLabel("Instrument"));
+        trackSpecificControlsPanel.add(instrCombo);
+        instrCombo.addActionListener(l -> track.getSettings().program = instrCombo.getProgram());
+        trackSpecificControlsPanel.add(new JLabel("Channel"));
+        trackSpecificControlsPanel.add(cbChannel);
+        cbChannel.addActionListener(l -> track.getSettings().midiChannel = cbChannel.getSelectedIndex());
+        trackSpecificControlsPanel.add(new JLabel("Volume"));
+        trackSpecificControlsPanel.add(volumeSlider);
+        volumeSlider.addChangeListener(l -> track.getSettings().volume = volumeSlider.getValue());
+        return trackSpecificControlsPanel;
     }
 
     private void changeTrackEditorScale() {
@@ -156,14 +223,6 @@ public class TrackEditor extends JInternalFrame {
         track.getSettings().program = instrCombo.getProgram();
         track.getSettings().midiChannel = cbChannel.getSelectedIndex();
         track.getSettings().volume = volumeSlider.getValue();
-    }
-
-    public NoteLength getNoteLength(){
-        return this.noteLengthCombo.getSelectedNoteLength();
-    }
-
-    public ChordType getChordType(){
-        return selectedChordType;
     }
 
 }

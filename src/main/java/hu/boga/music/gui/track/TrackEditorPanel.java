@@ -2,6 +2,8 @@ package hu.boga.music.gui.track;
 
 import com.google.common.collect.Lists;
 import hu.boga.music.App;
+import hu.boga.music.enums.ChordType;
+import hu.boga.music.enums.NoteLength;
 import hu.boga.music.enums.NoteName;
 import hu.boga.music.midi.MidiEventListener;
 import hu.boga.music.model.Note;
@@ -24,7 +26,7 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     private static final int OCTAVES = 8;
     private int barCount = 10;
     private static final int TICK_COUNT_IN_BAR = 32;
-    private static final int LINE_HEIGHT = 30;
+    private static final int LINE_HEIGHT = 20;
     private static final int KEYBOARD_OFFSET = 40;
     private static final Color KEY_BLACK_COLOR = new Color(Color.BLACK.getRed(), Color.BLACK.getGreen(), Color.BLACK.getBlue());
     private static final Color KEY_WHITE_COLOR = new Color(Color.WHITE.getRed(), Color.WHITE.getGreen(), Color.WHITE.getBlue());
@@ -40,9 +42,11 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     private int currentMouseTickPosition;
     private Pitch currentMousePitchPosition = new Pitch();
 
-    public TrackEditorPanel(Track track, TrackEditor editor) {
-        this.track = track;
-        this.editor = editor;
+    private NoteLength currentNoteLength = NoteLength.NEGYED;
+    private ChordType currentChordType;
+
+    public TrackEditorPanel() {
+//        this.editor = editor;
         App.EVENT_BUS.register(this);
         this.setLayout(null);
         this.setOpaque(false);
@@ -53,6 +57,11 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         this.addMouseMotionListener(adapter);
         this.addMouseListener(adapter);
 
+    }
+
+    public void setTrack(Track track){
+        this.track = track;
+        displayNotes();
     }
 
     private void handleMouseWheelEventOnTrackEditor(MouseWheelEvent mouseWheelEvent) {
@@ -77,15 +86,15 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     private void addNoteToTrack(Point point) {
         Note note = new Note();
         note.setPitch(getPitchByY(point.y));
-        note.setLength(this.editor.getNoteLength());
+        note.setLength(currentNoteLength);
         this.track.getNotesAtTick(getTickByX(point.x)).add(note);
 
-        if(this.editor.selectedChordType != null){
-            Chord chord = Chord.getChord(currentMousePitchPosition, editor.selectedChordType);
+        if(currentChordType != null){
+            Chord chord = Chord.getChord(currentMousePitchPosition, currentChordType);
             Arrays.stream(chord.getPitches()).forEach(pitch -> {
                 Note n = new Note();
                 n.setPitch(pitch);
-                n.setLength(this.editor.getNoteLength());
+                n.setLength(currentNoteLength);
                 this.track.getNotesAtTick(getTickByX(point.x)).add(n);
             });
         }
@@ -118,11 +127,11 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
         int tickWidth = getTickWidth();
         int x = getXByTick(currentMouseTickPosition, tickWidth);
         int y = getYByPitch(currentMousePitchPosition.getMidiCode());
-        int width = this.editor.getNoteLength().getErtek() * tickWidth;
+        int width = currentNoteLength.getErtek() * tickWidth;
         g.fillRect(x, y, width, LINE_HEIGHT);
 
-        if(this.editor.selectedChordType != null){
-            Chord chord = Chord.getChord(currentMousePitchPosition, editor.selectedChordType);
+        if(currentChordType != null){
+            Chord chord = Chord.getChord(currentMousePitchPosition, currentChordType);
             Arrays.stream(chord.getPitches()).forEach(pitch -> {
                 int y2 = getYByPitch(pitch.getMidiCode());
                 g.fillRect(x, y2, width, LINE_HEIGHT);
@@ -448,14 +457,14 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     }
 
     private void copySelectedNotes() {
-        copiedNotes = track.copy();
+        track.copy();
         this.getSelectedNoteLabels().forEach(nl -> {
             nl.note.setSelected(false);
         });
     }
 
     private void paste(){
-        track.paste(copiedNotes);
+        track.paste();
         displayNotes();
     }
 
@@ -524,5 +533,13 @@ public class TrackEditorPanel extends JLayeredPane implements MidiEventListener 
     @Override
     public void processMeasureEvent(int measure) {
 
+    }
+
+    public void setCurrentNoteLength(NoteLength currentNoteLength) {
+        this.currentNoteLength = currentNoteLength;
+    }
+
+    public void setCurrentChordType(ChordType currentChordType) {
+        this.currentChordType = currentChordType;
     }
 }
