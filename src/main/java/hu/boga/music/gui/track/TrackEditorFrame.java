@@ -20,7 +20,7 @@ import hu.boga.music.model.Track;
 import hu.boga.music.model.TrackSettings;
 import hu.boga.music.theory.Scale;
 
-public class TrackEditor extends JInternalFrame {
+public class TrackEditorFrame extends JInternalFrame {
 
     private int origHeight = 300;
     private TrackEditorPanel trackEditorPanel;
@@ -36,7 +36,7 @@ public class TrackEditor extends JInternalFrame {
     JComboBox cbChannel = new JComboBox(new DefaultComboBoxModel(new String[]{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"}));
     VolumeSlider volumeSlider = new VolumeSlider();
 
-    public TrackEditor() {
+    public TrackEditorFrame() {
         super("Trackeditor", true, false, true, false);
         createTrackEditorPanel();
         createTrackSettingsPanel();
@@ -54,7 +54,7 @@ public class TrackEditor extends JInternalFrame {
             @Override
             public void internalFrameClosed(InternalFrameEvent internalFrameEvent) {
                 try {
-                    TrackEditor.this.setClosed(true);
+                    TrackEditorFrame.this.setClosed(true);
                 } catch (PropertyVetoException e) {
                     e.printStackTrace();
                 }
@@ -63,7 +63,7 @@ public class TrackEditor extends JInternalFrame {
 
             @Override
             public void internalFrameIconified(InternalFrameEvent internalFrameEvent) {
-                TrackEditor.this.getDesktopIcon().setLocation(TrackEditor.this.getLocation().x, TrackEditor.this.getLocation().y);
+                TrackEditorFrame.this.getDesktopIcon().setLocation(TrackEditorFrame.this.getLocation().x, TrackEditorFrame.this.getLocation().y);
 
             }
 
@@ -88,7 +88,7 @@ public class TrackEditor extends JInternalFrame {
     }
 
     public void setTrack(Track track) {
-        this.setTitle(track.getName());
+        this.setTitle(track.getId().toString().substring(0,10));
         this.track = track;
         this.trackEditorPanel.setTrack(track);
 

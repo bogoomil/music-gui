@@ -3,8 +3,6 @@ package hu.boga.music.gui.projecteditor;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
@@ -16,9 +14,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -31,8 +26,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.common.eventbus.Subscribe;
 import hu.boga.music.App;
-import hu.boga.music.gui.TrackOpenEvent;
+import hu.boga.music.gui.events.ProjectChangedEvent;
+import hu.boga.music.gui.events.TrackOpenEvent;
 import hu.boga.music.gui.controls.TempoSlider;
 import hu.boga.music.midi.MidiEngine;
 import hu.boga.music.model.Track;
@@ -123,93 +120,37 @@ public class ProjectEditor extends JInternalFrame {
         JPanel panel_3 = new JPanel();
         getContentPane().add(panel_3, BorderLayout.SOUTH);
 
+        TEMPO_SLIDER.setValue(project.getTempo());
+        TEMPO_SLIDER.addChangeListener(l -> {
+            project.setTempo(TEMPO_SLIDER.getValue());
+        });
+
         this.pack();
-
-        JMenuBar menuBar = new JMenuBar();
-        setJMenuBar(menuBar);
-
-        JMenu mnFile = new JMenu("File");
-        menuBar.add(mnFile);
-
-        JMenuItem mntmOpen = new JMenuItem("Open...");
-        mnFile.add(mntmOpen);
-        mntmOpen.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int returnVal = fileChooser.showOpenDialog(ProjectEditor.this);
-
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    File file = fileChooser.getSelectedFile();
-                    try {
-                        open(file);
-                    } catch (IOException e1) {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        JMenuItem mntmSave = new JMenuItem("Save...");
-        mnFile.add(mntmSave);
-        mntmSave.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int returnVal = fileChooser.showSaveDialog(ProjectEditor.this);
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    File file = fileChooser.getSelectedFile();
-                    try {
-                        save(file);
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            }
-        });
-
         this.setVisible(true);
     }
 
     private void addTrack(Project project) {
         Track newTrack = new Track();
-        newTrack.setName(UUID.randomUUID().toString().substring(0, 10));
         project.getTracks().add(newTrack);
         this.updateTrackButtons();
         App.EVENT_BUS.post(new TrackOpenEvent(newTrack));
     }
 
-    private void open(File file) throws JsonParseException, JsonMappingException, IOException {
-        ObjectMapper om = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
- //       Piece p = om.readValue(file, Piece.class);
-//        this.setPiece(p);
-
-    }
-
-    private void save(File file) throws IOException {
-   //     piece.setName(this.tfPieceName.getText());
-//
-//        ObjectMapper om = new ObjectMapper();
-//        String json = om.writeValueAsString(piece);
-//        FileWriter writer = new FileWriter(file);
-//        writer.write(json);
-//        writer.flush();
-//        writer.close();
-
-    }
-
     private void updateTrackButtons() {
         tracksPanel.removeAll();
         this.project.getTracks().forEach(t -> {
-            JButton jButton = new JButton(t.getName());
+            JButton jButton = new JButton(t.getId().toString().substring(0,10));
             jButton.addActionListener(l -> {
                 App.EVENT_BUS.post(new TrackOpenEvent(t));
             });
             tracksPanel.add(jButton);
         });
         tracksPanel.revalidate();
+    }
+
+    @Subscribe
+    void handleProjectChangedEvent(ProjectChangedEvent event){
+        updateTrackButtons();
     }
 
 }

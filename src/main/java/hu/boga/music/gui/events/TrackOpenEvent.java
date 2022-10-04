@@ -1,4 +1,4 @@
-package hu.boga.music.gui;
+package hu.boga.music.gui.events;
 
 import hu.boga.music.model.Track;
 

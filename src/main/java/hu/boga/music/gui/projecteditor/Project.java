@@ -5,9 +5,11 @@ import hu.boga.music.model.Track;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class Project {
     private String name;
+    private int tempo = 120;
 
     public Project(String name) {
         this.name = name;
@@ -31,7 +33,15 @@ public class Project {
         this.tracks = tracks;
     }
 
-    public Optional<Track> getTrackById(int id){
-        return tracks.stream().filter(track -> track.getId() == id).findFirst();
+    public Optional<Track> getTrackById(UUID id){
+        return tracks.stream().filter(track -> track.getId().equals(id)).findFirst();
+    }
+
+    public int getTempo() {
+        return tempo;
+    }
+
+    public void setTempo(int tempo) {
+        this.tempo = tempo;
     }
 }
